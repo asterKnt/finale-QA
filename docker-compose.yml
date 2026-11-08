@@ -1,0 +1,91 @@
+name: clic-justo
+
+services:
+  serving-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clic-justo-plataforma:latest
+    container_name: clic-justo-serving-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./datos:/app/datos
+    command: ["uv", "run", "--no-sync", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "uv", "run", "--no-sync", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    restart: unless-stopped
+
+  batch-runner:
+    image: clic-justo-plataforma:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clic-justo-batch-runner
+    volumes:
+      - ./datos:/app/datos
+    command: ["uv", "run", "--no-sync", "python", "-m", "src.batch.scheduler", "--una-vez"]
+    profiles:
+      - batch
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+
+  ingesta-worker:
+    image: clic-justo-plataforma:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clic-justo-ingesta-worker
+    volumes:
+      - ./datos:/app/datos
+    command: ["uv", "run", "--no-sync", "python", "-m", "src.ingesta.consumidor", "--directorio", "/app/datos/eventos_vivo", "--intervalo", "2"]
+    profiles:
+      - vivo
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+    restart: unless-stopped
+
+  productor:
+    build:
+      context: ./datos/productor-clic-justo-v1
+      dockerfile: Dockerfile
+    image: productor-clic-justo:1
+    container_name: clic-justo-productor
+    volumes:
+      - ./datos/estado:/estado
+      - ./datos/eventos_vivo:/salida
+    command: ["--salida", "archivo", "--desde", "ahora"]
+    profiles:
+      - vivo
+    restart: on-failure
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    container_name: clic-justo-redpanda
+    command: >
+      redpanda start --mode dev-container --smp 1 --memory 1G --overprovisioned
+      --kafka-addr INTERNO://0.0.0.0:9092,EXTERNO://0.0.0.0:19092
+      --advertise-kafka-addr INTERNO://redpanda:9092,EXTERNO://localhost:19092
+    ports:
+      - "19092:19092"
+    profiles:
+      - broker
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health", "--exit-when-healthy"]
+      interval: 5s
+      timeout: 10s
+      retries: 20

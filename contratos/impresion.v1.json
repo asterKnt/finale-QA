@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clicjusto.com/schemas/impresion.v1.json",
+  "title": "ContratoEventoImpresionV1",
+  "description": "Contrato formal de validacion para eventos de impresion (anuncio mostrado) en tiempo real v1.",
+  "type": "object",
+  "required": [
+    "evento_id",
+    "tipo",
+    "version",
+    "impresion_id",
+    "campania_id",
+    "sitio_id",
+    "dispositivo_id",
+    "ts"
+  ],
+  "properties": {
+    "evento_id": {
+      "type": "string",
+      "description": "Identificador unico universal del evento de ingesta.",
+      "minLength": 1
+    },
+    "tipo": {
+      "type": "string",
+      "const": "impresion",
+      "description": "Discriminador de tipo de evento, estrictamente 'impresion'."
+    },
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version del contrato del evento, estrictamente 1 para esta definicion."
+    },
+    "impresion_id": {
+      "type": "string",
+      "description": "Identificador unico de la impresion del anuncio.",
+      "minLength": 1
+    },
+    "campania_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Identificador entero de la campana publicitaria anunciante."
+    },
+    "sitio_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Identificador entero del sitio web o aplicacion donde se mostro el anuncio."
+    },
+    "dispositivo_id": {
+      "type": "string",
+      "description": "Identificador del dispositivo del usuario (dato personal protegido). Requerido.",
+      "minLength": 1
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Marca de tiempo Unix en segundos (UTC)."
+    }
+  },
+  "additionalProperties": false
+}

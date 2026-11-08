@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clicjusto.com/schemas/clic.v1.json",
+  "title": "ContratoEventoClicV1",
+  "description": "Contrato formal de validacion para eventos de clics sobre anuncios en tiempo real v1.",
+  "type": "object",
+  "required": [
+    "evento_id",
+    "tipo",
+    "version",
+    "clic_id",
+    "impresion_id",
+    "campania_id",
+    "sitio_id",
+    "dispositivo_id",
+    "ip",
+    "costo",
+    "ts"
+  ],
+  "properties": {
+    "evento_id": {
+      "type": "string",
+      "description": "Identificador unico universal del evento de ingesta.",
+      "minLength": 1
+    },
+    "tipo": {
+      "type": "string",
+      "const": "clic",
+      "description": "Discriminador de tipo de evento, estrictamente 'clic'."
+    },
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version del contrato del evento, estrictamente 1 para esta definicion."
+    },
+    "clic_id": {
+      "type": "string",
+      "description": "Identificador unico universal del clic.",
+      "minLength": 1
+    },
+    "impresion_id": {
+      "type": "string",
+      "description": "Identificador unico de la impresion que origino el clic.",
+      "minLength": 1
+    },
+    "campania_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Identificador entero de la campana publicitaria anunciante."
+    },
+    "sitio_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Identificador entero del sitio web o aplicacion donde ocurrio el clic."
+    },
+    "dispositivo_id": {
+      "type": "string",
+      "description": "Identificador del dispositivo que ejecuto el clic (dato personal protegido). Requerido.",
+      "minLength": 1
+    },
+    "ip": {
+      "type": "string",
+      "description": "Direccion IP de origen del clic (dato personal protegido). Requerida.",
+      "minLength": 1
+    },
+    "costo": {
+      "type": "string",
+      "description": "Monto cobrado en USD formateado como texto con punto decimal.",
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Marca de tiempo Unix en segundos (UTC) del momento del clic."
+    }
+  },
+  "additionalProperties": false
+}

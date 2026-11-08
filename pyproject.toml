@@ -1,0 +1,20 @@
+[project]
+name = "clic-justo"
+version = "0.1.0"
+description = "Plataforma de Datos con Arquitectura Lambda para Deteccion de Fraude y Analitica Publicitaria"
+readme = "README.md"
+authors = [
+    { name = "asterKnt" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "jsonschema>=4.26.0",
+    "pydantic>=2.14.1",
+    "duckdb>=1.1.0",
+    "pyarrow>=17.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+]
+
+[tool.uv]
+package = false
