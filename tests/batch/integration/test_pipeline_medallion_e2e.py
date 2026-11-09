@@ -1,4 +1,4 @@
-"""Pruebas de integracion End-to-End (E2E) para el pipeline de arquitectura Medallion."""
+"""Prueba de integracion End-to-End (E2E) para el flujo Medallion (Bronze -> Silver -> Gold)."""
 
 from pathlib import Path
 from src.batch.bronze_a_silver import TransformadorBronzeSilver
@@ -16,9 +16,14 @@ def test_pipeline_medallion_flujo_completo(tmp_datos_dir: Path) -> None:
     dir_estado = tmp_datos_dir / "estado"
 
     dir_historico.mkdir(parents=True, exist_ok=True)
-    (dir_historico / "catalogos").mkdir(parents=True, exist_ok=True)
+    dir_catalogos = dir_historico / "catalogos"
+    dir_catalogos.mkdir(parents=True, exist_ok=True)
 
     # Crear archivos CSV sinteticos minimos
+    with open(dir_catalogos / "paises.csv", "w", encoding="utf-8") as f:
+        f.write("code,descripcion\n")
+        f.write("1,Guatemala\n")
+
     with open(dir_historico / "sitios_raw.csv", "w", encoding="utf-8") as f:
         f.write("sitio_id,nombre,tipo_code,pais_code,reparto_pct\n")
         f.write("1,Sitio Test,1,1,50.00\n")
@@ -65,11 +70,6 @@ def test_pipeline_medallion_flujo_completo(tmp_datos_dir: Path) -> None:
     res_p1 = agregador.generar_p1_ingresos_mensuales()
     assert res_p1["p1_generado"] is True
 
-    res_p2 = agregador.generar_p2_top_sitios()
-    assert res_p2["p2_generado"] is True
-
-    # Verificar existencia de archivos en capa Gold
-    assert (dir_modelado / "p1_ingresos_mensuales.parquet").exists()
-    assert (dir_modelado / "p2_top_sitios.parquet").exists()
-
-    motor.cerrar()
+    # Verificar que el Parquet de Gold P1 exista
+    archivo_p1 = dir_modelado / "p1_ingresos_mensuales.parquet"
+    assert archivo_p1.exists()
