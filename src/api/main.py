@@ -12,6 +12,7 @@ from src.api.dependencias import obtener_motor
 from src.api.rutas_analitica import router as router_analitica
 from src.api.rutas_campanias import router as router_campanias
 from src.api.rutas_catalogos import router as router_catalogos
+from src.api.rutas_ui import router as router_ui
 
 
 @asynccontextmanager
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(router_analitica)
 app.include_router(router_campanias)
 app.include_router(router_catalogos)
+app.include_router(router_ui)
 
 
 @app.get("/health", tags=["Salud"])
@@ -61,6 +63,7 @@ def root() -> dict[str, Any]:
     return {
         "mensaje": "Plataforma de Datos Clic Justo",
         "docs": "/docs",
+        "ui": "/ui/",
         "version": os.environ.get("APP_VERSION", "1.0.0"),
         "commit_sha": os.environ.get("COMMIT_SHA", "dev-local"),
         "ambiente": os.environ.get("APP_ENV", "local"),

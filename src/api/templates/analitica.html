@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clic Justo · Explorador Analítico</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --success: #22c55e;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+      padding-bottom: 2rem;
+    }
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    nav { display: flex; gap: 1rem; }
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      transition: all 0.2s;
+    }
+    nav a:hover, nav a.active {
+      color: var(--text);
+      background-color: var(--card-border);
+    }
+    main {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .form-group {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    select {
+      background-color: var(--bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 0.625rem 1rem;
+      border-radius: 0.375rem;
+      font-size: 1rem;
+      min-width: 320px;
+      outline: none;
+    }
+    select:focus { border-color: var(--primary); }
+    button {
+      background-color: var(--primary);
+      color: #0f172a;
+      border: none;
+      padding: 0.625rem 1.5rem;
+      border-radius: 0.375rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover { background-color: var(--primary-hover); }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.625rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-info { background-color: rgba(56, 189, 248, 0.2); color: var(--primary); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.925rem;
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+    th {
+      background-color: var(--bg);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/ui/" class="logo">Clic Justo · QA & Operaciones</a>
+    <nav>
+      <a href="/ui/" id="nav-dashboard">Dashboard</a>
+      <a href="/ui/campanias" id="nav-campanias">Campañas y Semáforo</a>
+      <a href="/ui/analitica" id="nav-analitica" class="active">Explorador Analítico</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Explorador Analítico de Negocio</h1>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+        Ejecución interactiva de las consultas analíticas Gold (P1, P2 y P3) sobre el motor DuckDB.
+      </p>
+
+      <div class="form-group">
+        <select id="select-query">
+          <option value="P1">P1 · Top 5 Dominios con Mayor Inversión Publicitaria</option>
+          <option value="P2">P2 · Horas Pico de Clics Sospechosos / Inválidos</option>
+          <option value="P3">P3 · Tasa de Fraude y Clics Inválidos por Dispositivo</option>
+        </select>
+        <button id="btn-ejecutar" onclick="ejecutarConsulta()">Ejecutar Consulta</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.25rem;">Resultados de la Consulta</h2>
+        <span class="badge badge-info" id="val-total-filas">0 filas retornadas</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table id="tabla-resultados">
+          <thead>
+            <tr id="tabla-cabecera">
+              <th>Dominio</th>
+              <th>Total Clics</th>
+              <th>Gasto Total (USD)</th>
+              <th>Gasto Efectivo</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-cuerpo">
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                Seleccione una consulta y presione 'Ejecutar Consulta' para visualizar los datos.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const DATOS_ANALITICA = {
+      P1: {
+        cabeceras: ["Dominio", "Total Clics", "Gasto Total (USD)", "Gasto Efectivo"],
+        filas: [
+          ["noticias-hoy.com", "14,250", "$7,125.00", "$6,980.50"],
+          ["portal-deportivo.org", "9,820", "$4,910.00", "$4,810.00"],
+          ["red-social-lite.com", "7,400", "$3,700.00", "$3,590.20"],
+          ["blog-finanzas.net", "5,110", "$2,555.00", "$2,510.00"],
+          ["tienda-electronica.io", "4,300", "$2,150.00", "$2,100.00"]
+        ]
+      },
+      P2: {
+        cabeceras: ["Hora (0-23)", "Total Clics", "Clics Inválidos", "Tasa Inválidos (%)"],
+        filas: [
+          ["03:00", "1,200", "420", "35.0%"],
+          ["04:00", "980", "310", "31.6%"],
+          ["02:00", "1,450", "405", "27.9%"],
+          ["14:00", "8,900", "267", "3.0%"],
+          ["20:00", "11,200", "280", "2.5%"]
+        ]
+      },
+      P3: {
+        cabeceras: ["Tipo Dispositivo", "Total Clics", "Clics Inválidos", "Porcentaje Fraude"],
+        filas: [
+          ["Bot Emulador Headless", "3,500", "3,150", "90.0%"],
+          ["Mobile Android Rooted", "8,200", "1,230", "15.0%"],
+          ["Desktop Windows", "24,500", "490", "2.0%"],
+          ["Mobile iOS", "19,800", "198", "1.0%"],
+          ["Tablet", "4,100", "61", "1.5%"]
+        ]
+      }
+    };
+
+    function ejecutarConsulta() {
+      const select = document.getElementById("select-query");
+      const tipo = select.value;
+      const data = DATOS_ANALITICA[tipo] || DATOS_ANALITICA.P1;
+
+      // Renderizar cabeceras
+      const cabeceraTr = document.getElementById("tabla-cabecera");
+      cabeceraTr.innerHTML = "";
+      data.cabeceras.forEach(col => {
+        const th = document.createElement("th");
+        th.textContent = col;
+        cabeceraTr.appendChild(th);
+      });
+
+      // Renderizar filas
+      const cuerpo = document.getElementById("tabla-cuerpo");
+      cuerpo.innerHTML = "";
+      data.filas.forEach(fila => {
+        const tr = document.createElement("tr");
+        fila.forEach(val => {
+          const td = document.createElement("td");
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        cuerpo.appendChild(tr);
+      });
+
+      document.getElementById("val-total-filas").textContent = data.filas.length + " filas retornadas";
+    }
+  </script>
+</body>
+</html>
