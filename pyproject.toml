@@ -25,6 +25,7 @@ dev = [
     "mypy>=2.4.1",
     "pytest>=9.2.0",
     "pytest-cov>=7.1.0",
+    "pytest-playwright>=0.7.0",
     "ruff>=0.17.4",
 ]
 
@@ -32,6 +33,9 @@ dev = [
 pythonpath = ["."]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "smoke: marcas para pruebas de humo criticas (smoke tests)",
+]
 
 [tool.ruff]
 line-length = 120
