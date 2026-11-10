@@ -237,6 +237,16 @@
 
       document.getElementById("val-campania-id").textContent = id;
 
+      const fallback = DEMO_CAMPANIAS[id] || {
+        presupuesto: "$50.00",
+        gastoHoy: "$12.50",
+        gastoHora: "$1.20",
+        pctInvalidos: "2.4%",
+        accion: "normal",
+        desc: "Operación estándar."
+      };
+      actualizarUI(fallback.presupuesto, fallback.gastoHoy, fallback.gastoHora, fallback.pctInvalidos, fallback.accion, fallback.desc);
+
       try {
         const resp = await fetch("/api/v1/campanias/" + id + "/resumen");
         if (resp.ok) {
@@ -248,21 +258,10 @@
             (data.pct_invalidos_hora || 0) + "%",
             data.accion_sugerida
           );
-          return;
         }
       } catch (e) {
         // En ambiente de prueba o sin base de datos activa, usar mock predeterminado
       }
-
-      const fallback = DEMO_CAMPANIAS[id] || {
-        presupuesto: "$50.00",
-        gastoHoy: "$12.50",
-        gastoHora: "$1.20",
-        pctInvalidos: "2.4%",
-        accion: "normal",
-        desc: "Operación estándar."
-      };
-      actualizarUI(fallback.presupuesto, fallback.gastoHoy, fallback.gastoHora, fallback.pctInvalidos, fallback.accion, fallback.desc);
     }
 
     function actualizarUI(presupuesto, hoy, hora, invalidos, accion, desc) {
