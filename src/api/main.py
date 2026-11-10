@@ -49,7 +49,7 @@ app.include_router(router_ui)
 def health_check() -> dict[str, Any]:
     """Endpoint de comprobacion de estado de salud del servicio."""
     return {
-        "status": "ok",
+        "status": "error",
         "servicio": "clic-justo-serving-api",
         "version": os.environ.get("APP_VERSION", "1.0.0"),
         "commit_sha": os.environ.get("COMMIT_SHA", "dev-local"),
