@@ -1,5 +1,6 @@
 """Servidor principal FastAPI para la Capa de Servicio (Serving Layer) de Clic Justo."""
 
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -45,7 +46,13 @@ app.include_router(router_catalogos)
 @app.get("/health", tags=["Salud"])
 def health_check() -> dict[str, Any]:
     """Endpoint de comprobacion de estado de salud del servicio."""
-    return {"status": "ok", "servicio": "clic-justo-serving-api"}
+    return {
+        "status": "ok",
+        "servicio": "clic-justo-serving-api",
+        "version": os.environ.get("APP_VERSION", "1.0.0"),
+        "commit_sha": os.environ.get("COMMIT_SHA", "dev-local"),
+        "ambiente": os.environ.get("APP_ENV", "local"),
+    }
 
 
 @app.get("/", tags=["Salud"])
@@ -54,5 +61,7 @@ def root() -> dict[str, Any]:
     return {
         "mensaje": "Plataforma de Datos Clic Justo",
         "docs": "/docs",
-        "version": "1.0.0",
+        "version": os.environ.get("APP_VERSION", "1.0.0"),
+        "commit_sha": os.environ.get("COMMIT_SHA", "dev-local"),
+        "ambiente": os.environ.get("APP_ENV", "local"),
     }

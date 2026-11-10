@@ -1,6 +1,7 @@
 """Pruebas dirigidas por datos (DDT) para evolucion de versiones y multiversion de contratos."""
 
 from typing import Any
+
 from src.core.contratos import ValidadorContratos
 
 

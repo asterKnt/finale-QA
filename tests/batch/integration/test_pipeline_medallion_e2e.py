@@ -1,6 +1,7 @@
 """Prueba de integracion End-to-End (E2E) para el flujo Medallion (Bronze -> Silver -> Gold)."""
 
 from pathlib import Path
+
 from src.batch.bronze_a_silver import TransformadorBronzeSilver
 from src.batch.motor import MotorDuckDB
 from src.batch.silver_a_gold import AgregadorSilverGold

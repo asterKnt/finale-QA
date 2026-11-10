@@ -2,6 +2,7 @@
 
 import time
 from pathlib import Path
+
 from src.ingesta.enrutador import EnrutadorIngesta
 
 

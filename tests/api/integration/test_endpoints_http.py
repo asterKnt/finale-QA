@@ -1,6 +1,7 @@
 """Pruebas de integracion HTTP sobre los endpoints de la API Serving Layer en FastAPI."""
 
 from fastapi.testclient import TestClient
+
 from src.api.main import app
 
 client = TestClient(app)

@@ -1,6 +1,7 @@
 """Pruebas dirigidas por datos (DDT) para privacidad (PII) y reglas de accion operacional."""
 
 from decimal import Decimal
+
 import pytest
 
 from src.api.rutas_campanias import evaluar_regla_accion_campania

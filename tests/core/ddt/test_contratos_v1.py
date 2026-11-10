@@ -1,6 +1,7 @@
 """Pruebas dirigidas por datos (DDT) para validacion de contratos v1 (clic e impresion)."""
 
 from typing import Any
+
 import pytest
 
 from src.core.contratos import ValidadorContratos
@@ -12,9 +13,7 @@ def validador() -> ValidadorContratos:
     return ValidadorContratos()
 
 
-def test_validar_evento_clic_valido(
-    validador: ValidadorContratos, muestra_evento_clic_valido: dict[str, Any]
-) -> None:
+def test_validar_evento_clic_valido(validador: ValidadorContratos, muestra_evento_clic_valido: dict[str, Any]) -> None:
     """Verifica que un evento de clic valido pase la validacion del contrato v1."""
     es_valido, tipo, error_tipo, error_detalle = validador.validar_evento(muestra_evento_clic_valido)
     assert es_valido is True

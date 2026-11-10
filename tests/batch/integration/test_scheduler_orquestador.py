@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from src.batch.scheduler import OrquestadorBatch
 
@@ -30,7 +30,7 @@ def test_orquestador_batch_ejecucion_exitosa(tmp_datos_dir: Path) -> None:
     with (
         patch("src.batch.scheduler.TransformadorBronzeSilver") as mock_tb,
         patch("src.batch.scheduler.AgregadorSilverGold") as mock_ag,
-        patch("src.batch.scheduler.MotorDuckDB") as mock_motor,
+        patch("src.batch.scheduler.MotorDuckDB"),
     ):
         mock_tb.return_value.ejecutar_todo.return_value = {
             "total_segundos": 0.5,

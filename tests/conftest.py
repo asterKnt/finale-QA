@@ -3,6 +3,7 @@
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
+
 import pytest
 from duckdb import DuckDBPyConnection
 
@@ -18,7 +19,7 @@ def tmp_datos_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def motor_duckdb_memoria() -> Generator[MotorDuckDB, None, None]:
+def motor_duckdb_memoria() -> Generator[MotorDuckDB]:
     """Crea una instancia aislada en memoria del motor DuckDB."""
     motor = MotorDuckDB(base_datos=":memory:")
     yield motor

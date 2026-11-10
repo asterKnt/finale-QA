@@ -1,6 +1,7 @@
 """Pruebas unitarias para consultas y transformaciones SQL ejecutadas en DuckDB."""
 
 from duckdb import DuckDBPyConnection
+
 from src.batch.motor import MotorDuckDB
 
 

@@ -28,6 +28,7 @@ node_modules/
 .coverage
 htmlcov/
 *.xml
+*.pyc
 
 # Contexto generado y general
 CONTEXTO.md

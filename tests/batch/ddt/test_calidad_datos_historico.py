@@ -1,7 +1,9 @@
 """Pruebas dirigidas por datos (DDT) para validar la calidad e integridad de los datos historicos."""
 
 from pathlib import Path
+
 from duckdb import DuckDBPyConnection
+
 from src.batch.bronze_a_silver import TransformadorBronzeSilver
 from src.batch.motor import MotorDuckDB
 

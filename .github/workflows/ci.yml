@@ -1,28 +1,393 @@
-name: CI Suite Clic Justo
+name: CI Quality Pipeline · Clic Justo
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: "Ambiente de despliegue y pruebas"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - "staging"
+          - "produccion"
+      test_suite:
+        description: "Suite de pruebas a ejecutar"
+        required: true
+        default: "smoke"
+        type: choice
+        options:
+          - "smoke"
+          - "completa"
+      browser:
+        description: "Navegador para pruebas End-to-End"
+        required: true
+        default: "chromium"
+        type: choice
+        options:
+          - "chromium"
+          - "firefox"
+      destinatario_correo:
+        description: "Destinatario para alertas de fallo en el build"
+        required: false
+        default: "josue.aguilar@ufm.edu"
+        type: string
+
+env:
+  PYTHON_VERSION: "3.14"
+  DEFAULT_RECIPIENT: "josue.aguilar@ufm.edu"
 
 jobs:
-  test:
+  # =========================================================================
+  # Etapa 1: Linting y Analisis Estatico
+  # =========================================================================
+  lint:
+    name: "1. Lint & Static Analysis"
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Checkout del codigo
+      - name: Checkout del repositorio
         uses: actions/checkout@v4
 
       - name: Instalar uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
+          enable-cache: true
 
-      - name: Configurar Python
-        run: uv python install 3.14
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
 
-      - name: Instalar dependencias del proyecto
+      - name: Instalar dependencias
         run: uv sync --frozen --dev
 
-      - name: Ejecutar suite completa de pytest con cobertura
-        run: uv run pytest --cov=src --cov-report=term-missing -v
+      - name: Comprobacion de formato y estilo con Ruff
+        run: |
+          echo "Ejecutando verificacion de estilo con Ruff..."
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Analisis estatico de tipos con MyPy
+        run: |
+          echo "Ejecutando analisis estatico estricto con MyPy..."
+          uv run mypy src/ tests/ --strict
+
+      - name: Notificar fallo de Lint por correo
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || 465 }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI Alerta] Build #${{ github.run_number }} FALLO en Etapa: Lint"
+          to: ${{ github.event.inputs.destinatario_correo || env.DEFAULT_RECIPIENT }}
+          from: "Clic Justo CI <${{ secrets.SMTP_USERNAME }}>"
+          body: |
+            Alerta de fallo en el pipeline de integracion continua:
+
+            - Numero de Build: ${{ github.run_number }}
+            - Commit SHA: ${{ github.sha }}
+            - Etapa que fallo: 1. Lint & Static Analysis (Ruff / MyPy)
+            - Ambiente: ${{ github.event.inputs.ambiente || 'staging' }}
+            - Rama: ${{ github.ref_name }}
+            - Enlace al log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # =========================================================================
+  # Etapa 2: Pruebas Unitarias y Puerta de Cobertura
+  # =========================================================================
+  unit-and-coverage:
+    name: "2. Pruebas Unitarias y Cobertura"
+    needs: [lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Instalar dependencias
+        run: uv sync --frozen --dev
+
+      - name: Ejecutar pruebas unitarias con umbral estricto de cobertura (60%)
+        run: |
+          echo "Ejecutando suite de pruebas con puerta de calidad (--cov-fail-under=60)..."
+          uv run pytest tests/ \
+            -v --cov=src --cov-report=term-missing --cov-fail-under=60
+
+      - name: Notificar fallo de Unitarias por correo
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || 465 }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI Alerta] Build #${{ github.run_number }} FALLO en Etapa: Unitarias / Cobertura"
+          to: ${{ github.event.inputs.destinatario_correo || env.DEFAULT_RECIPIENT }}
+          from: "Clic Justo CI <${{ secrets.SMTP_USERNAME }}>"
+          body: |
+            Alerta de fallo en el pipeline de integracion continua:
+
+            - Numero de Build: ${{ github.run_number }}
+            - Commit SHA: ${{ github.sha }}
+            - Etapa que fallo: 2. Pruebas Unitarias y Cobertura (Gate Cobertura < 60%)
+            - Ambiente: ${{ github.event.inputs.ambiente || 'staging' }}
+            - Rama: ${{ github.ref_name }}
+            - Enlace al log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # =========================================================================
+  # Etapa 3: Build y Validacion del Artefacto
+  # =========================================================================
+  build:
+    name: "3. Build del Artefacto"
+    needs: [unit-and-coverage]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Verificar integridad determinista del lockfile
+        run: |
+          echo "Validando artefacto congelado uv.lock..."
+          uv sync --frozen --no-dev
+          echo "Artefacto validado exitosamente para version ${{ github.sha }}"
+
+      - name: Notificar fallo de Build por correo
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || 465 }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI Alerta] Build #${{ github.run_number }} FALLO en Etapa: Build"
+          to: ${{ github.event.inputs.destinatario_correo || env.DEFAULT_RECIPIENT }}
+          from: "Clic Justo CI <${{ secrets.SMTP_USERNAME }}>"
+          body: |
+            Alerta de fallo en el pipeline de integracion continua:
+
+            - Numero de Build: ${{ github.run_number }}
+            - Commit SHA: ${{ github.sha }}
+            - Etapa que fallo: 3. Build del Artefacto
+            - Ambiente: ${{ github.event.inputs.ambiente || 'staging' }}
+            - Rama: ${{ github.ref_name }}
+            - Enlace al log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # =========================================================================
+  # Etapa 4: Despliegue en el Ambiente Seleccionado e Integracion
+  # =========================================================================
+  deploy-and-integration:
+    name: "4. Despliegue e Integracion"
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Instalar dependencias
+        run: uv sync --frozen --dev
+
+      - name: Desplegar instancia en el ambiente seleccionado
+        run: |
+          AMBIENTE="${{ github.event.inputs.ambiente || 'staging' }}"
+          if [ "$AMBIENTE" = "produccion" ]; then
+            PORT=8001
+          else
+            PORT=8000
+          fi
+          echo "AMBIENTE_SELECCIONADO=$AMBIENTE" >> $GITHUB_ENV
+          echo "PORT_SELECCIONADO=$PORT" >> $GITHUB_ENV
+
+          echo "========================================================="
+          echo "Iniciando despliegue de instancia en ambiente: $AMBIENTE"
+          echo "Puerto asignado: $PORT | Commit SHA esperado: ${{ github.sha }}"
+          echo "========================================================="
+
+          APP_ENV=$AMBIENTE COMMIT_SHA=${{ github.sha }} \
+            uv run uvicorn src.api.main:app --host 127.0.0.1 --port $PORT &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+
+          # Esperar a que el servicio responda
+          for i in {1..15}; do
+            if curl -s http://127.0.0.1:$PORT/health | grep -q '"status":"ok"'; then
+              echo "Instancia lista y respondiendo en http://127.0.0.1:$PORT/health"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Verificar respuesta del sistema, ambiente y version del commit
+        run: |
+          URL_TEST="http://127.0.0.1:$PORT_SELECCIONADO/health"
+          echo "Verificando respuesta del sistema en: $URL_TEST"
+          RESPONSE=$(curl -s $URL_TEST)
+          echo "Respuesta del sistema: $RESPONSE"
+
+          # Validar que el commit coincida con el SHA del build
+          echo "$RESPONSE" | grep -q "${{ github.sha }}" || {
+            echo "ERROR: El commit_sha devuelto por el sistema no coincide con ${{ github.sha }}"
+            exit 1
+          }
+          # Validar que el ambiente coincida
+          echo "$RESPONSE" | grep -q "$AMBIENTE_SELECCIONADO" || {
+            echo "ERROR: El ambiente devuelto no coincide con $AMBIENTE_SELECCIONADO"
+            exit 1
+          }
+          echo "Verificacion de despliegue exitosa. Sistema responde version e identidad correctas."
+
+      - name: Ejecutar pruebas de integracion HTTP de caja negra
+        run: |
+          echo "Ejecutando pruebas de integracion HTTP contra la API..."
+          uv run pytest tests/api/integration/ -v
+
+      - name: Detener instancia desplegada
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            echo "Deteniendo servidor FastAPI (PID: $SERVER_PID)..."
+            kill -9 $SERVER_PID || true
+          fi
+
+      - name: Notificar fallo de Despliegue/Integracion por correo
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || 465 }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI Alerta] Build #${{ github.run_number }} FALLO en Etapa: Despliegue / Integracion"
+          to: ${{ github.event.inputs.destinatario_correo || env.DEFAULT_RECIPIENT }}
+          from: "Clic Justo CI <${{ secrets.SMTP_USERNAME }}>"
+          body: |
+            Alerta de fallo en el pipeline de integracion continua:
+
+            - Numero de Build: ${{ github.run_number }}
+            - Commit SHA: ${{ github.sha }}
+            - Etapa que fallo: 4. Despliegue e Integracion
+            - Ambiente: ${{ github.event.inputs.ambiente || 'staging' }}
+            - Rama: ${{ github.ref_name }}
+            - Enlace al log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # =========================================================================
+  # Etapa 5: Pruebas End-to-End con Playwright
+  # =========================================================================
+  e2e:
+    name: "5. Pruebas End-to-End"
+    needs: [deploy-and-integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Configurar Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Instalar dependencias
+        run: uv sync --frozen --dev
+
+      - name: Comprobar existencia de pruebas E2E
+        id: check_e2e
+        run: |
+          if [ -d "tests/e2e" ]; then
+            echo "has_e2e=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_e2e=false" >> $GITHUB_OUTPUT
+            echo "Directorio tests/e2e aun no creado (se implementara en la rama web-interface)."
+          fi
+
+      - name: Instalar navegadores de Playwright
+        if: steps.check_e2e.outputs.has_e2e == 'true'
+        run: |
+          BROWSER="${{ github.event.inputs.browser || 'chromium' }}"
+          echo "Instalando binario de navegador Playwright ($BROWSER)..."
+          uv run playwright install --with-deps $BROWSER
+
+      - name: Desplegar servidor para pruebas E2E
+        if: steps.check_e2e.outputs.has_e2e == 'true'
+        run: |
+          APP_ENV="staging" COMMIT_SHA=${{ github.sha }} \
+            uv run uvicorn src.api.main:app --host 127.0.0.1 --port 8000 &
+          echo "E2E_PID=$!" >> $GITHUB_ENV
+          sleep 2
+
+      - name: Ejecutar pruebas E2E con Playwright (${{ github.event.inputs.browser || 'chromium' }})
+        if: steps.check_e2e.outputs.has_e2e == 'true'
+        run: |
+          SUITE="${{ github.event.inputs.test_suite || 'smoke' }}"
+          BROWSER="${{ github.event.inputs.browser || 'chromium' }}"
+          echo "Ejecutando pruebas E2E (Suite: $SUITE | Navegador: $BROWSER)..."
+          if [ "$SUITE" = "smoke" ]; then
+            uv run pytest tests/e2e/ -v -m smoke --browser $BROWSER
+          else
+            uv run pytest tests/e2e/ -v --browser $BROWSER
+          fi
+
+      - name: Detener servidor E2E
+        if: always() && steps.check_e2e.outputs.has_e2e == 'true'
+        run: |
+          if [ -n "$E2E_PID" ]; then
+            kill -9 $E2E_PID || true
+          fi
+
+      - name: Notificar fallo de E2E por correo
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || 465 }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI Alerta] Build #${{ github.run_number }} FALLO en Etapa: End-to-End"
+          to: ${{ github.event.inputs.destinatario_correo || env.DEFAULT_RECIPIENT }}
+          from: "Clic Justo CI <${{ secrets.SMTP_USERNAME }}>"
+          body: |
+            Alerta de fallo en el pipeline de integracion continua:
+
+            - Numero de Build: ${{ github.run_number }}
+            - Commit SHA: ${{ github.sha }}
+            - Etapa que fallo: 5. Pruebas End-to-End
+            - Ambiente: ${{ github.event.inputs.ambiente || 'staging' }}
+            - Rama: ${{ github.ref_name }}
+            - Enlace al log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}

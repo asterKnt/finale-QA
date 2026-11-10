@@ -1,6 +1,7 @@
 """Pruebas unitarias para reglas de negocio de la Capa Gold (CTR, baselines y reglas de accion)."""
 
 from decimal import Decimal
+
 from src.api.rutas_campanias import evaluar_regla_accion_campania
 
 
