@@ -123,8 +123,8 @@ jobs:
 
       - name: Ejecutar pruebas unitarias con umbral estricto de cobertura (60%)
         run: |
-          echo "Ejecutando suite de pruebas con puerta de calidad (--cov-fail-under=60)..."
-          uv run pytest tests/ \
+          echo "Ejecutando suite unitaria y de cobertura (--cov-fail-under=60)..."
+          uv run pytest tests/ --ignore=tests/e2e \
             -v --cov=src --cov-report=term-missing --cov-fail-under=60
 
       - name: Notificar fallo de Unitarias por correo
